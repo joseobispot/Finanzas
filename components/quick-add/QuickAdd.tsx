@@ -52,7 +52,7 @@ export function QuickAdd({ categories }: { categories: Category[] }) {
         className="fixed right-5 bottom-20 md:right-8 md:bottom-8 z-30 inline-flex items-center gap-1.5 rounded-[13px] bg-forest text-white font-bold text-sm px-4 py-3 shadow-[0_10px_26px_-6px_rgba(14,107,76,0.45)] hover:brightness-105 active:scale-[.98] transition"
       >
         <Plus size={16} strokeWidth={2.2} />
-        Nuevo gasto
+        Nuevo movimiento
       </button>
 
       <dialog

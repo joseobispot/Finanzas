@@ -209,7 +209,7 @@ export default async function DashboardPage() {
             </div>
             {data.recent.length === 0 ? (
               <p className="text-[12.8px] text-ink-muted py-4">
-                Aún no has registrado ningún movimiento. Usa el botón &quot;Nuevo gasto&quot;.
+                Aún no has registrado ningún movimiento. Usa el botón &quot;Nuevo movimiento&quot;.
               </p>
             ) : (
               data.recent.map((t, i) => (
