@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireHousehold } from "@/lib/household";
 
@@ -68,4 +69,19 @@ export async function addSavingsMovement(formData: FormData) {
   revalidatePath("/savings");
   revalidatePath("/goals");
   revalidatePath("/dashboard");
+}
+
+export async function deleteSavingsAccount(id: string, isGoal: boolean) {
+  const { supabase, householdId } = await requireHousehold();
+  const { error } = await supabase
+    .from("savings_accounts")
+    .delete()
+    .eq("id", id)
+    .eq("household_id", householdId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/savings");
+  revalidatePath("/goals");
+  revalidatePath("/dashboard");
+  redirect(isGoal ? "/goals" : "/savings");
 }

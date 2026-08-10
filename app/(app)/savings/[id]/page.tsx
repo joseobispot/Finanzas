@@ -4,6 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { requireHousehold } from "@/lib/household";
 import { addSavingsMovement } from "@/lib/actions/savings";
 import { formatCurrency, formatShortDate } from "@/lib/format";
+import { DeleteSavingsAccountButton } from "@/components/savings/DeleteSavingsAccountButton";
 
 export default async function SavingsDetailPage({
   params,
@@ -42,23 +43,26 @@ export default async function SavingsDetailPage({
         <ChevronLeft size={15} /> {isGoal ? "Metas" : "Ahorros"}
       </Link>
 
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-11 h-11 rounded-[13px] bg-forest-tint text-forest flex items-center justify-center text-xl flex-none">
-          {account.emoji ?? "🐷"}
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-[13px] bg-forest-tint text-forest flex items-center justify-center text-xl flex-none">
+            {account.emoji ?? "🐷"}
+          </div>
+          <div>
+            <h1 className="text-[23px] font-bold tracking-tight">{account.name}</h1>
+            {isGoal ? (
+              <p className="text-ink-muted text-[13.8px] mt-0.5">
+                Meta: {formatCurrency(Number(account.goal_amount))}
+                {account.goal_date ? ` · ${formatShortDate(account.goal_date)}` : ""}
+              </p>
+            ) : (
+              <p className="text-ink-muted text-[13.8px] mt-0.5 capitalize">
+                {account.kind === "investment" ? "Inversión" : "Ahorro"}
+              </p>
+            )}
+          </div>
         </div>
-        <div>
-          <h1 className="text-[23px] font-bold tracking-tight">{account.name}</h1>
-          {isGoal ? (
-            <p className="text-ink-muted text-[13.8px] mt-0.5">
-              Meta: {formatCurrency(Number(account.goal_amount))}
-              {account.goal_date ? ` · ${formatShortDate(account.goal_date)}` : ""}
-            </p>
-          ) : (
-            <p className="text-ink-muted text-[13.8px] mt-0.5 capitalize">
-              {account.kind === "investment" ? "Inversión" : "Ahorro"}
-            </p>
-          )}
-        </div>
+        <DeleteSavingsAccountButton id={account.id} isGoal={isGoal} name={account.name} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
