@@ -6,6 +6,11 @@ import { formatCurrency, formatShortDate } from "@/lib/format";
 import { Sparkline } from "@/components/dashboard/Sparkline";
 import { DeltaPill } from "@/components/dashboard/DeltaPill";
 
+const FIRST_NAME_BY_USER_ID: Record<string, string> = {
+  "222e6226-c3a4-4377-802f-ae23bcf0593a": "José",
+  "2e06d696-e4a0-4d02-b6ea-3ad8a24dfeae": "Masiel",
+};
+
 function todayLabel() {
   const label = new Intl.DateTimeFormat("es-DO", {
     weekday: "long",
@@ -16,7 +21,8 @@ function todayLabel() {
 }
 
 export default async function DashboardPage() {
-  const { supabase, householdId } = await requireHousehold();
+  const { supabase, user, householdId } = await requireHousehold();
+  const firstName = FIRST_NAME_BY_USER_ID[user.id] ?? "";
   const data = await getDashboardData(supabase, householdId);
 
   const savingsRate = data.income.current > 0 ? (data.savings.current / data.income.current) * 100 : 0;
@@ -30,7 +36,7 @@ export default async function DashboardPage() {
       <div className="flex items-baseline justify-between flex-wrap gap-2.5 mb-6">
         <div>
           <h1 className="text-[23px] font-bold tracking-tight">
-            Hola, José y Masiel 👋
+            Hola{firstName ? `, ${firstName}` : ""} 👋
           </h1>
           <p className="text-ink-muted text-[13.8px] mt-0.5">Este es el estado de tus finanzas</p>
         </div>
