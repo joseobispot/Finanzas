@@ -41,6 +41,36 @@ export async function createTransaction(formData: FormData) {
   revalidatePath("/reports");
 }
 
+export async function updateTransaction(id: string, formData: FormData) {
+  const { supabase } = await requireHousehold();
+
+  const parsed = transactionSchema.parse({
+    type: formData.get("type"),
+    amount: formData.get("amount"),
+    categoryId: formData.get("categoryId"),
+    occurredOn: formData.get("occurredOn"),
+    description: formData.get("description") || undefined,
+  });
+
+  const { error } = await supabase
+    .from("transactions")
+    .update({
+      category_id: parsed.categoryId,
+      type: parsed.type,
+      amount: parsed.amount,
+      description: parsed.description,
+      occurred_on: parsed.occurredOn,
+    })
+    .eq("id", id);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/dashboard");
+  revalidatePath("/transactions");
+  revalidatePath("/budget");
+  revalidatePath("/reports");
+}
+
 export async function deleteTransaction(id: string) {
   const { supabase } = await requireHousehold();
   const { error } = await supabase.from("transactions").delete().eq("id", id);

@@ -5,6 +5,7 @@ import { createTransaction } from "@/lib/actions/transactions";
 import { createRecurringRule } from "@/lib/actions/recurring";
 import { formatCurrency, formatShortDate } from "@/lib/format";
 import { DeleteTransactionButton } from "@/components/transactions/DeleteTransactionButton";
+import { EditTransactionButton } from "@/components/transactions/EditTransactionButton";
 import { ToggleRecurringButton } from "@/components/transactions/ToggleRecurringButton";
 
 function parseMonth(month?: string) {
@@ -45,7 +46,7 @@ export default async function TransactionsPage({
 
   let query = supabase
     .from("transactions")
-    .select("id, type, amount, description, occurred_on, categories(name, emoji)")
+    .select("id, type, amount, description, occurred_on, category_id, categories(name, emoji)")
     .eq("household_id", householdId)
     .gte("occurred_on", monthStart)
     .lt("occurred_on", nextMonth.toISOString().slice(0, 10))
@@ -154,6 +155,17 @@ export default async function TransactionsPage({
                     {t.type === "income" ? "+" : "−"}
                     {formatCurrency(t.amount)}
                   </div>
+                  <EditTransactionButton
+                    transaction={{
+                      id: t.id,
+                      type: t.type,
+                      amount: t.amount,
+                      categoryId: t.category_id,
+                      occurredOn: t.occurred_on,
+                      description: t.description,
+                    }}
+                    categories={categories ?? []}
+                  />
                   <DeleteTransactionButton id={t.id} />
                 </div>
               );
