@@ -38,6 +38,36 @@ export async function createRecurringRule(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/transactions");
+  revalidatePath("/dashboard");
+}
+
+export async function updateRecurringRule(id: string, formData: FormData) {
+  const { supabase } = await requireHousehold();
+
+  const parsed = ruleSchema.parse({
+    type: formData.get("type"),
+    amount: formData.get("amount"),
+    categoryId: formData.get("categoryId"),
+    description: formData.get("description") || undefined,
+    dayOfMonth: formData.get("dayOfMonth"),
+    startDate: formData.get("startDate"),
+  });
+
+  const { error } = await supabase
+    .from("recurring_rules")
+    .update({
+      category_id: parsed.categoryId,
+      type: parsed.type,
+      amount: parsed.amount,
+      description: parsed.description,
+      day_of_month: parsed.dayOfMonth,
+      start_date: parsed.startDate,
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/transactions");
+  revalidatePath("/dashboard");
 }
 
 export async function setRecurringActive(id: string, active: boolean) {
@@ -46,4 +76,14 @@ export async function setRecurringActive(id: string, active: boolean) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/transactions");
+  revalidatePath("/dashboard");
+}
+
+export async function deleteRecurringRule(id: string) {
+  const { supabase } = await requireHousehold();
+  const { error } = await supabase.from("recurring_rules").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/transactions");
+  revalidatePath("/dashboard");
 }

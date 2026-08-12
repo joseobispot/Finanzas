@@ -31,6 +31,7 @@ export const navItems: NavItem[] = [
 
 export const bottomNavItems: NavItem[] = [
   { href: "/dashboard", label: "Inicio", icon: Home },
+  { href: "/transactions", label: "Trans.", icon: Receipt },
   { href: "/budget", label: "Presup.", icon: PieChart },
   { href: "/goals", label: "Metas", icon: Target },
   { href: "/savings", label: "Ahorros", icon: PiggyBank },

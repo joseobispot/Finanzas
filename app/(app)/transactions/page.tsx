@@ -7,6 +7,8 @@ import { formatCurrency, formatShortDate } from "@/lib/format";
 import { DeleteTransactionButton } from "@/components/transactions/DeleteTransactionButton";
 import { EditTransactionButton } from "@/components/transactions/EditTransactionButton";
 import { ToggleRecurringButton } from "@/components/transactions/ToggleRecurringButton";
+import { EditRecurringRuleButton } from "@/components/transactions/EditRecurringRuleButton";
+import { DeleteRecurringRuleButton } from "@/components/transactions/DeleteRecurringRuleButton";
 
 function parseMonth(month?: string) {
   const now = new Date();
@@ -68,7 +70,7 @@ export default async function TransactionsPage({
 
   const { data: rules } = await supabase
     .from("recurring_rules")
-    .select("id, type, amount, description, day_of_month, active, categories(name, emoji)")
+    .select("id, type, amount, description, day_of_month, start_date, active, category_id, categories(name, emoji)")
     .eq("household_id", householdId)
     .order("created_at", { ascending: false });
 
@@ -234,6 +236,19 @@ export default async function TransactionsPage({
                       </div>
                     </div>
                     <ToggleRecurringButton id={r.id} active={r.active} />
+                    <EditRecurringRuleButton
+                      rule={{
+                        id: r.id,
+                        type: r.type,
+                        amount: r.amount,
+                        categoryId: r.category_id,
+                        description: r.description,
+                        dayOfMonth: r.day_of_month,
+                        startDate: r.start_date,
+                      }}
+                      categories={categories ?? []}
+                    />
+                    <DeleteRecurringRuleButton id={r.id} name={r.description || cat?.name || "regla"} />
                   </div>
                 );
               })}

@@ -50,13 +50,32 @@ export default async function SettingsPage() {
           <ThemeToggleRow />
         </div>
 
-        <Link
-          href="/categories"
-          className="bg-surface border border-border rounded-[18px] shadow-sm p-5 hover:border-forest transition-colors md:col-span-2"
-        >
-          <h2 className="text-[15.5px] font-bold">Categorías</h2>
-          <p className="text-[12.8px] text-ink-muted mt-1">Edita o agrega categorías de gastos e ingresos</p>
-        </Link>
+        <div className="md:col-span-2">
+          <h2 className="text-[13px] font-bold text-ink-muted uppercase tracking-wide mb-2">Más secciones</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Link
+              href="/loans"
+              className="bg-surface border border-border rounded-[18px] shadow-sm p-4 hover:border-forest transition-colors"
+            >
+              <h3 className="text-[14px] font-bold">🏦 Deudas</h3>
+              <p className="text-[12.3px] text-ink-muted mt-1">Préstamos y su amortización</p>
+            </Link>
+            <Link
+              href="/categories"
+              className="bg-surface border border-border rounded-[18px] shadow-sm p-4 hover:border-forest transition-colors"
+            >
+              <h3 className="text-[14px] font-bold">🏷️ Categorías</h3>
+              <p className="text-[12.3px] text-ink-muted mt-1">Edita o agrega categorías</p>
+            </Link>
+            <Link
+              href="/reports"
+              className="bg-surface border border-border rounded-[18px] shadow-sm p-4 hover:border-forest transition-colors"
+            >
+              <h3 className="text-[14px] font-bold">📊 Reportes</h3>
+              <p className="text-[12.3px] text-ink-muted mt-1">Comparación mes a mes</p>
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );
