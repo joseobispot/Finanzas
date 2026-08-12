@@ -5,6 +5,7 @@ import { Pencil } from "lucide-react";
 import { updateTransaction } from "@/lib/actions/transactions";
 
 type Category = { id: string; name: string; emoji: string | null; type: "expense" | "income" };
+type PaymentMethod = { id: string; name: string; kind: "cash" | "debit" | "credit" };
 
 type Transaction = {
   id: string;
@@ -13,14 +14,17 @@ type Transaction = {
   categoryId: string;
   occurredOn: string;
   description: string | null;
+  paymentMethodId: string | null;
 };
 
 export function EditTransactionButton({
   transaction,
   categories,
+  paymentMethods,
 }: {
   transaction: Transaction;
   categories: Category[];
+  paymentMethods: PaymentMethod[];
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [type, setType] = useState<"expense" | "income">(transaction.type);
@@ -141,6 +145,25 @@ export function EditTransactionButton({
                 className="w-full mt-1.5 border border-border rounded-[11px] px-2.5 py-2 text-[13.5px] bg-surface"
               />
             </div>
+            {paymentMethods.length > 0 ? (
+              <div>
+                <label className="text-[11.5px] font-bold uppercase tracking-wide text-ink-muted">
+                  Método de pago (opcional)
+                </label>
+                <select
+                  name="paymentMethodId"
+                  defaultValue={transaction.paymentMethodId ?? ""}
+                  className="w-full mt-1.5 border border-border rounded-[11px] px-2.5 py-2 text-[13.5px] bg-surface"
+                >
+                  <option value="">Sin especificar</option>
+                  {paymentMethods.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
           </div>
 
           <div className="flex gap-2.5 mt-5">

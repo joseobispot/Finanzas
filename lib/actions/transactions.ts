@@ -10,6 +10,7 @@ const transactionSchema = z.object({
   categoryId: z.string().uuid(),
   occurredOn: z.string().min(1),
   description: z.string().optional(),
+  paymentMethodId: z.string().uuid().optional(),
 });
 
 export async function createTransaction(formData: FormData) {
@@ -21,6 +22,7 @@ export async function createTransaction(formData: FormData) {
     categoryId: formData.get("categoryId"),
     occurredOn: formData.get("occurredOn"),
     description: formData.get("description") || undefined,
+    paymentMethodId: formData.get("paymentMethodId") || undefined,
   });
 
   const { error } = await supabase.from("transactions").insert({
@@ -31,6 +33,7 @@ export async function createTransaction(formData: FormData) {
     amount: parsed.amount,
     description: parsed.description,
     occurred_on: parsed.occurredOn,
+    payment_method_id: parsed.paymentMethodId ?? null,
   });
 
   if (error) throw new Error(error.message);
@@ -50,6 +53,7 @@ export async function updateTransaction(id: string, formData: FormData) {
     categoryId: formData.get("categoryId"),
     occurredOn: formData.get("occurredOn"),
     description: formData.get("description") || undefined,
+    paymentMethodId: formData.get("paymentMethodId") || undefined,
   });
 
   const { error } = await supabase
@@ -60,6 +64,7 @@ export async function updateTransaction(id: string, formData: FormData) {
       amount: parsed.amount,
       description: parsed.description,
       occurred_on: parsed.occurredOn,
+      payment_method_id: parsed.paymentMethodId ?? null,
     })
     .eq("id", id);
 

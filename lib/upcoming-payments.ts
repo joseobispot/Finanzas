@@ -7,11 +7,47 @@ export type UpcomingPayment = {
   emoji: string | null;
   amount: number;
   dueDate: string;
-  kind: "recurring" | "loan";
+  kind: "recurring" | "loan" | "credit";
 };
 
 function daysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
+}
+
+function dateWithDay(year: number, month: number, day: number) {
+  return new Date(year, month, Math.min(day, daysInMonth(year, month)));
+}
+
+/** Ocurrencia de `day` más reciente que sea <= referencia. */
+function mostRecentOnOrBefore(day: number, reference: Date): Date {
+  let year = reference.getFullYear();
+  let month = reference.getMonth();
+  let candidate = dateWithDay(year, month, day);
+  if (candidate > reference) {
+    month -= 1;
+    if (month < 0) {
+      month = 11;
+      year -= 1;
+    }
+    candidate = dateWithDay(year, month, day);
+  }
+  return candidate;
+}
+
+/** Ocurrencia de `day` más próxima que sea estrictamente posterior a `after`. */
+function firstOccurrenceAfter(day: number, after: Date): Date {
+  let year = after.getFullYear();
+  let month = after.getMonth();
+  let candidate = dateWithDay(year, month, day);
+  if (candidate <= after) {
+    month += 1;
+    if (month > 11) {
+      month = 0;
+      year += 1;
+    }
+    candidate = dateWithDay(year, month, day);
+  }
+  return candidate;
 }
 
 function nextOccurrence(
@@ -52,19 +88,34 @@ export async function getUpcomingPayments(
 ): Promise<UpcomingPayment[]> {
   const today = new Date();
 
-  const [{ data: rules }, { data: loans }, { data: loanPayments }] = await Promise.all([
-    supabase
-      .from("recurring_rules")
-      .select("id, type, amount, description, day_of_month, start_date, end_date, active, categories(name, emoji)")
-      .eq("household_id", householdId)
-      .eq("active", true)
-      .eq("type", "expense"),
-    supabase
-      .from("loans")
-      .select("id, name, principal, annual_interest_rate, term_months, start_date")
-      .eq("household_id", householdId),
-    supabase.from("loan_payments").select("loan_id, amount").eq("household_id", householdId),
-  ]);
+  const threeMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 3, 1).toISOString().slice(0, 10);
+
+  const [{ data: rules }, { data: loans }, { data: loanPayments }, { data: creditCards }, { data: cardCharges }] =
+    await Promise.all([
+      supabase
+        .from("recurring_rules")
+        .select("id, type, amount, description, day_of_month, start_date, end_date, active, categories(name, emoji)")
+        .eq("household_id", householdId)
+        .eq("active", true)
+        .eq("type", "expense"),
+      supabase
+        .from("loans")
+        .select("id, name, principal, annual_interest_rate, term_months, start_date")
+        .eq("household_id", householdId),
+      supabase.from("loan_payments").select("loan_id, amount").eq("household_id", householdId),
+      supabase
+        .from("payment_methods")
+        .select("id, name, statement_day, payment_day")
+        .eq("household_id", householdId)
+        .eq("kind", "credit"),
+      supabase
+        .from("transactions")
+        .select("payment_method_id, amount, occurred_on")
+        .eq("household_id", householdId)
+        .eq("type", "expense")
+        .not("payment_method_id", "is", null)
+        .gte("occurred_on", threeMonthsAgo),
+    ]);
 
   const payments: UpcomingPayment[] = [];
 
@@ -109,6 +160,39 @@ export async function getUpcomingPayments(
       amount: next.payment,
       dueDate: next.dueDate,
       kind: "loan",
+    });
+  }
+
+  const chargesByCard = new Map<string, { amount: number; date: string }[]>();
+  for (const c of cardCharges ?? []) {
+    if (!c.payment_method_id) continue;
+    const list = chargesByCard.get(c.payment_method_id) ?? [];
+    list.push({ amount: Number(c.amount), date: c.occurred_on });
+    chargesByCard.set(c.payment_method_id, list);
+  }
+
+  for (const card of creditCards ?? []) {
+    if (!card.statement_day || !card.payment_day) continue;
+    const lastCutoff = mostRecentOnOrBefore(card.statement_day, today);
+    const prevCutoff = new Date(lastCutoff.getFullYear(), lastCutoff.getMonth() - 1, lastCutoff.getDate());
+    const nextPaymentDate = firstOccurrenceAfter(card.payment_day, lastCutoff);
+
+    const charges = chargesByCard.get(card.id) ?? [];
+    const amount = charges
+      .filter((c) => {
+        const d = new Date(`${c.date}T00:00:00`);
+        return d > prevCutoff && d <= lastCutoff;
+      })
+      .reduce((sum, c) => sum + c.amount, 0);
+
+    if (amount <= 0) continue;
+    payments.push({
+      id: `credit-${card.id}`,
+      label: card.name,
+      emoji: "💳",
+      amount,
+      dueDate: nextPaymentDate.toISOString().slice(0, 10),
+      kind: "credit",
     });
   }
 

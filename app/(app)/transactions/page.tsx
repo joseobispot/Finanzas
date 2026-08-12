@@ -49,7 +49,9 @@ export default async function TransactionsPage({
 
   let query = supabase
     .from("transactions")
-    .select("id, type, amount, description, occurred_on, category_id, categories(name, emoji)")
+    .select(
+      "id, type, amount, description, occurred_on, category_id, payment_method_id, categories(name, emoji), payment_methods(name)",
+    )
     .eq("household_id", householdId)
     .gte("occurred_on", monthStart)
     .lt("occurred_on", nextMonth.toISOString().slice(0, 10))
@@ -67,6 +69,12 @@ export default async function TransactionsPage({
     .eq("household_id", householdId)
     .eq("is_active", true)
     .order("name");
+
+  const { data: paymentMethods } = await supabase
+    .from("payment_methods")
+    .select("id, name, kind")
+    .eq("household_id", householdId)
+    .order("created_at");
 
   const { data: rules } = await supabase
     .from("recurring_rules")
@@ -138,6 +146,7 @@ export default async function TransactionsPage({
           ) : (
             (transactions ?? []).map((t, i) => {
               const cat = Array.isArray(t.categories) ? t.categories[0] : t.categories;
+              const method = Array.isArray(t.payment_methods) ? t.payment_methods[0] : t.payment_methods;
               return (
                 <div
                   key={t.id}
@@ -152,6 +161,7 @@ export default async function TransactionsPage({
                     </div>
                     <div className="text-xs text-ink-muted mt-0.5">
                       {cat?.name} · {formatShortDate(t.occurred_on)}
+                      {method ? ` · 💳 ${method.name}` : ""}
                     </div>
                   </div>
                   <div className={`text-[13.6px] font-bold tnum ${t.type === "income" ? "text-forest" : ""}`}>
@@ -166,8 +176,10 @@ export default async function TransactionsPage({
                       categoryId: t.category_id,
                       occurredOn: t.occurred_on,
                       description: t.description,
+                      paymentMethodId: t.payment_method_id,
                     }}
                     categories={categories ?? []}
+                    paymentMethods={paymentMethods ?? []}
                   />
                   <DeleteTransactionButton id={t.id} />
                 </div>
@@ -213,6 +225,20 @@ export default async function TransactionsPage({
                 placeholder="Descripción (opcional)"
                 className="border border-border rounded-[11px] px-3 py-2 text-[13.5px]"
               />
+              {(paymentMethods ?? []).length > 0 ? (
+                <select
+                  name="paymentMethodId"
+                  defaultValue=""
+                  className="border border-border rounded-[11px] px-3 py-2 text-[13.5px] bg-surface"
+                >
+                  <option value="">Método de pago (opcional)</option>
+                  {(paymentMethods ?? []).map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
               <button type="submit" className="rounded-[11px] bg-forest text-white font-bold text-[13.3px] py-2.5">
                 Guardar
               </button>

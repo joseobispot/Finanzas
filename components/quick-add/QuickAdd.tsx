@@ -5,12 +5,19 @@ import { Plus } from "lucide-react";
 import { createTransaction } from "@/lib/actions/transactions";
 
 type Category = { id: string; name: string; emoji: string | null; type: "expense" | "income" };
+type PaymentMethod = { id: string; name: string; kind: "cash" | "debit" | "credit" };
 
 function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function QuickAdd({ categories }: { categories: Category[] }) {
+export function QuickAdd({
+  categories,
+  paymentMethods,
+}: {
+  categories: Category[];
+  paymentMethods: PaymentMethod[];
+}) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [type, setType] = useState<"expense" | "income">("expense");
   const [showMore, setShowMore] = useState(false);
@@ -36,11 +43,18 @@ export function QuickAdd({ categories }: { categories: Category[] }) {
     return window.localStorage.getItem(`lastCategory:${t}`) ?? undefined;
   }
 
+  function lastPaymentMethod() {
+    if (typeof window === "undefined") return undefined;
+    return window.localStorage.getItem("lastPaymentMethod") ?? undefined;
+  }
+
   function handleSubmit(formData: FormData) {
     const categoryId = String(formData.get("categoryId"));
+    const paymentMethodId = String(formData.get("paymentMethodId") ?? "");
     startTransition(async () => {
       await createTransaction(formData);
       window.localStorage.setItem(`lastCategory:${type}`, categoryId);
+      if (paymentMethodId) window.localStorage.setItem("lastPaymentMethod", paymentMethodId);
       close();
     });
   }
@@ -151,6 +165,25 @@ export function QuickAdd({ categories }: { categories: Category[] }) {
                   className="w-full mt-1.5 border border-border rounded-[11px] px-2.5 py-2 text-[13.5px] bg-surface"
                 />
               </div>
+              {paymentMethods.length > 0 ? (
+                <div>
+                  <label className="text-[11.5px] font-bold uppercase tracking-wide text-ink-muted">
+                    Método de pago (opcional)
+                  </label>
+                  <select
+                    name="paymentMethodId"
+                    defaultValue={lastPaymentMethod()}
+                    className="w-full mt-1.5 border border-border rounded-[11px] px-2.5 py-2 text-[13.5px] bg-surface"
+                  >
+                    <option value="">Sin especificar</option>
+                    {paymentMethods.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
             </div>
           ) : (
             <input type="hidden" name="occurredOn" value={today()} />
