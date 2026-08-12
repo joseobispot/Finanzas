@@ -29,9 +29,10 @@ function monthLabel(d: Date) {
 export default async function TransactionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; type?: string }>;
+  searchParams: Promise<{ month?: string; type?: string; open?: string }>;
 }) {
-  const { month: monthQuery, type: typeFilter } = await searchParams;
+  const { month: monthQuery, type: typeFilter, open } = await searchParams;
+  const openRecurring = open === "recurring";
   const { supabase, householdId } = await requireHousehold();
 
   const monthDate = parseMonth(monthQuery);
@@ -216,7 +217,7 @@ export default async function TransactionsPage({
             </div>
           </form>
 
-          <div className="bg-surface border border-border rounded-[18px] shadow-sm p-5">
+          <div id="recurrentes" className="bg-surface border border-border rounded-[18px] shadow-sm p-5">
             <h2 className="text-[15.5px] font-bold mb-3">Recurrentes</h2>
             <div className="flex flex-col gap-1 mb-4">
               {(rules ?? []).map((r) => {
@@ -241,7 +242,7 @@ export default async function TransactionsPage({
               ) : null}
             </div>
 
-            <details>
+            <details open={openRecurring}>
               <summary className="text-[12.8px] font-bold text-forest cursor-pointer">
                 + Nueva regla recurrente
               </summary>

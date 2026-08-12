@@ -2,9 +2,11 @@ import Link from "next/link";
 import { ArrowUp, ArrowDown, PiggyBank, Target } from "lucide-react";
 import { requireHousehold } from "@/lib/household";
 import { getDashboardData } from "@/lib/dashboard-data";
+import { getUpcomingPayments } from "@/lib/upcoming-payments";
 import { formatCurrency, formatShortDate } from "@/lib/format";
 import { Sparkline } from "@/components/dashboard/Sparkline";
 import { DeltaPill } from "@/components/dashboard/DeltaPill";
+import { UpcomingPaymentsCard } from "@/components/dashboard/UpcomingPaymentsCard";
 
 const FIRST_NAME_BY_USER_ID: Record<string, string> = {
   "222e6226-c3a4-4377-802f-ae23bcf0593a": "José",
@@ -24,6 +26,7 @@ export default async function DashboardPage() {
   const { supabase, user, householdId } = await requireHousehold();
   const firstName = FIRST_NAME_BY_USER_ID[user.id] ?? "";
   const data = await getDashboardData(supabase, householdId);
+  const upcomingPayments = await getUpcomingPayments(supabase, householdId);
 
   const savingsRate = data.income.current > 0 ? (data.savings.current / data.income.current) * 100 : 0;
 
@@ -160,6 +163,10 @@ export default async function DashboardPage() {
           </div>
           <div className="text-[12.3px] text-ink-muted mt-0.5">Progreso promedio de metas</div>
         </div>
+      </div>
+
+      <div className="mb-5">
+        <UpcomingPaymentsCard payments={upcomingPayments} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-4">
