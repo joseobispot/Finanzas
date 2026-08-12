@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
+import { useIsClient } from "@/lib/use-is-client";
 
 const OPTIONS = [
   { value: "light", label: "Claro" },
@@ -11,9 +11,7 @@ const OPTIONS = [
 
 export function ThemeToggleRow() {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  const mounted = useIsClient();
 
   return (
     <div className="flex bg-surface-2 rounded-[11px] p-[3px] mt-3">

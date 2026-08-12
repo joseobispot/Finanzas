@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireHousehold } from "@/lib/household";
 
@@ -33,6 +34,45 @@ export async function createLoan(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/loans");
+  revalidatePath("/dashboard");
+}
+
+export async function updateLoan(id: string, formData: FormData) {
+  const { supabase, householdId } = await requireHousehold();
+  const parsed = loanSchema.parse({
+    name: formData.get("name"),
+    principal: formData.get("principal"),
+    annualInterestRate: formData.get("annualInterestRate"),
+    termMonths: formData.get("termMonths"),
+    startDate: formData.get("startDate"),
+  });
+
+  const { error } = await supabase
+    .from("loans")
+    .update({
+      name: parsed.name,
+      principal: parsed.principal,
+      annual_interest_rate: parsed.annualInterestRate,
+      term_months: parsed.termMonths,
+      start_date: parsed.startDate,
+    })
+    .eq("id", id)
+    .eq("household_id", householdId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/loans/${id}`);
+  revalidatePath("/loans");
+  revalidatePath("/dashboard");
+}
+
+export async function deleteLoan(id: string) {
+  const { supabase, householdId } = await requireHousehold();
+  const { error } = await supabase.from("loans").delete().eq("id", id).eq("household_id", householdId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/loans");
+  revalidatePath("/dashboard");
+  redirect("/loans");
 }
 
 const paymentSchema = z.object({
@@ -62,4 +102,5 @@ export async function addLoanPayment(formData: FormData) {
 
   revalidatePath(`/loans/${parsed.loanId}`);
   revalidatePath("/loans");
+  revalidatePath("/dashboard");
 }

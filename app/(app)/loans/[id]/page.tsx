@@ -5,6 +5,8 @@ import { requireHousehold } from "@/lib/household";
 import { addLoanPayment } from "@/lib/actions/loans";
 import { computeAmortizationSchedule, totalScheduledPayments } from "@/lib/amortization";
 import { formatCurrency, formatShortDate } from "@/lib/format";
+import { EditLoanButton } from "@/components/loans/EditLoanButton";
+import { DeleteLoanButton } from "@/components/loans/DeleteLoanButton";
 
 export default async function LoanDetailPage({
   params,
@@ -52,6 +54,19 @@ export default async function LoanDetailPage({
           <p className="text-ink-muted text-[13.8px] mt-0.5">
             {formatCurrency(Number(loan.principal))} · {loan.annual_interest_rate}% anual · {loan.term_months} meses
           </p>
+        </div>
+        <div className="flex items-center gap-4">
+          <EditLoanButton
+            loan={{
+              id: loan.id,
+              name: loan.name,
+              principal: Number(loan.principal),
+              annualInterestRate: Number(loan.annual_interest_rate),
+              termMonths: loan.term_months,
+              startDate: loan.start_date,
+            }}
+          />
+          <DeleteLoanButton id={loan.id} name={loan.name} />
         </div>
       </div>
 
