@@ -127,6 +127,13 @@ export default async function SettingsPage() {
               <h3 className="text-[14px] font-bold">📊 Reportes</h3>
               <p className="text-[12.3px] text-ink-muted mt-1">Comparación mes a mes</p>
             </Link>
+            <Link
+              href="/payables"
+              className="bg-surface border border-border rounded-[18px] shadow-sm p-4 hover:border-forest transition-colors"
+            >
+              <h3 className="text-[14px] font-bold">🛒 Fiado</h3>
+              <p className="text-[12.3px] text-ink-muted mt-1">Cuentas a crédito informales</p>
+            </Link>
           </div>
         </div>
       </div>
