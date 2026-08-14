@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { requireHousehold } from "@/lib/household";
 import { createTransaction } from "@/lib/actions/transactions";
 import { createRecurringRule } from "@/lib/actions/recurring";
@@ -28,13 +28,37 @@ function monthLabel(d: Date) {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
+function buildQuery(params: Record<string, string | undefined>) {
+  const sp = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value) sp.set(key, value);
+  }
+  const s = sp.toString();
+  return s ? `/transactions?${s}` : "/transactions";
+}
+
 export default async function TransactionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; type?: string; open?: string }>;
+  searchParams: Promise<{
+    month?: string;
+    type?: string;
+    open?: string;
+    q?: string;
+    categoryId?: string;
+    paymentMethodId?: string;
+  }>;
 }) {
-  const { month: monthQuery, type: typeFilter, open } = await searchParams;
+  const {
+    month: monthQuery,
+    type: typeFilter,
+    open,
+    q,
+    categoryId: categoryFilter,
+    paymentMethodId: paymentMethodFilter,
+  } = await searchParams;
   const openRecurring = open === "recurring";
+  const hasSearch = Boolean(q || categoryFilter || paymentMethodFilter);
   const { supabase, householdId } = await requireHousehold();
 
   const monthDate = parseMonth(monthQuery);
@@ -46,22 +70,6 @@ export default async function TransactionsPage({
     p_household_id: householdId,
     p_target_month: monthStart,
   });
-
-  let query = supabase
-    .from("transactions")
-    .select(
-      "id, type, amount, description, occurred_on, category_id, payment_method_id, categories(name, emoji), payment_methods(name)",
-    )
-    .eq("household_id", householdId)
-    .gte("occurred_on", monthStart)
-    .lt("occurred_on", nextMonth.toISOString().slice(0, 10))
-    .order("occurred_on", { ascending: false });
-
-  if (typeFilter === "expense" || typeFilter === "income") {
-    query = query.eq("type", typeFilter);
-  }
-
-  const { data: transactions } = await query;
 
   const { data: categories } = await supabase
     .from("categories")
@@ -75,6 +83,43 @@ export default async function TransactionsPage({
     .select("id, name, kind")
     .eq("household_id", householdId)
     .order("created_at");
+
+  let query = supabase
+    .from("transactions")
+    .select(
+      "id, type, amount, description, occurred_on, category_id, payment_method_id, categories(name, emoji), payment_methods(name)",
+    )
+    .eq("household_id", householdId)
+    .order("occurred_on", { ascending: false });
+
+  if (hasSearch) {
+    query = query.limit(300);
+  } else {
+    query = query
+      .gte("occurred_on", monthStart)
+      .lt("occurred_on", nextMonth.toISOString().slice(0, 10));
+  }
+
+  if (typeFilter === "expense" || typeFilter === "income") {
+    query = query.eq("type", typeFilter);
+  }
+  if (categoryFilter) {
+    query = query.eq("category_id", categoryFilter);
+  }
+  if (paymentMethodFilter) {
+    query = query.eq("payment_method_id", paymentMethodFilter);
+  }
+  if (q) {
+    const escaped = q.replace(/[%_]/g, "\\$&");
+    const matchingCategoryIds = (categories ?? [])
+      .filter((c) => c.name.toLowerCase().includes(q.toLowerCase()))
+      .map((c) => c.id);
+    query = matchingCategoryIds.length > 0
+      ? query.or(`description.ilike.%${escaped}%,category_id.in.(${matchingCategoryIds.join(",")})`)
+      : query.ilike("description", `%${escaped}%`);
+  }
+
+  const { data: transactions } = await query;
 
   const { data: rules } = await supabase
     .from("recurring_rules")
@@ -93,31 +138,35 @@ export default async function TransactionsPage({
         <div>
           <h1 className="text-[23px] font-bold tracking-tight">Transacciones</h1>
           <p className="text-ink-muted text-[13.8px] mt-0.5">
-            Neto del mes:{" "}
+            {hasSearch ? "Total de la búsqueda" : "Neto del mes"}:{" "}
             <span className={`font-bold tnum ${total >= 0 ? "text-forest" : "text-ink"}`}>
               {formatCurrency(total)}
             </span>
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Link
-            href={`/transactions?month=${monthParam(prevMonth)}${typeFilter ? `&type=${typeFilter}` : ""}`}
-            className="p-2 rounded-full bg-surface border border-border"
-          >
-            <ChevronLeft size={16} />
-          </Link>
-          <span className="text-[13.5px] font-bold w-40 text-center">{monthLabel(monthDate)}</span>
-          <Link
-            href={`/transactions?month=${monthParam(nextMonth)}${typeFilter ? `&type=${typeFilter}` : ""}`}
-            className="p-2 rounded-full bg-surface border border-border"
-          >
-            <ChevronRight size={16} />
-          </Link>
-        </div>
+        {hasSearch ? (
+          <div className="text-[13.5px] font-bold text-ink-muted">Resultados de la búsqueda</div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Link
+              href={buildQuery({ month: monthParam(prevMonth), type: typeFilter })}
+              className="p-2 rounded-full bg-surface border border-border"
+            >
+              <ChevronLeft size={16} />
+            </Link>
+            <span className="text-[13.5px] font-bold w-40 text-center">{monthLabel(monthDate)}</span>
+            <Link
+              href={buildQuery({ month: monthParam(nextMonth), type: typeFilter })}
+              className="p-2 rounded-full bg-surface border border-border"
+            >
+              <ChevronRight size={16} />
+            </Link>
+          </div>
+        )}
       </div>
 
-      <div className="flex gap-2 mb-4">
+      <div className="flex flex-wrap items-center gap-2 mb-4">
         {[
           { key: undefined, label: "Todos" },
           { key: "expense", label: "Gastos" },
@@ -125,7 +174,13 @@ export default async function TransactionsPage({
         ].map((f) => (
           <Link
             key={f.label}
-            href={`/transactions?month=${monthParam(monthDate)}${f.key ? `&type=${f.key}` : ""}`}
+            href={buildQuery({
+              month: monthParam(monthDate),
+              type: f.key,
+              q,
+              categoryId: categoryFilter,
+              paymentMethodId: paymentMethodFilter,
+            })}
             className={`text-[12.6px] font-bold px-3 py-1.5 rounded-full border ${
               typeFilter === f.key || (!typeFilter && !f.key)
                 ? "bg-forest text-white border-forest"
@@ -135,13 +190,69 @@ export default async function TransactionsPage({
             {f.label}
           </Link>
         ))}
+
+        <details open={hasSearch} className="ml-auto">
+          <summary className="inline-flex items-center gap-1.5 text-[12.6px] font-bold text-ink-muted bg-surface border border-border rounded-full px-3 py-1.5 cursor-pointer list-none">
+            <Search size={13} strokeWidth={2} /> Buscar y filtrar
+          </summary>
+          <form
+            method="GET"
+            action="/transactions"
+            className="flex flex-col sm:flex-row gap-2 mt-2.5 bg-surface border border-border rounded-[14px] p-3"
+          >
+            {typeFilter ? <input type="hidden" name="type" value={typeFilter} /> : null}
+            <input
+              name="q"
+              defaultValue={q}
+              placeholder="Buscar por descripción o categoría…"
+              className="flex-1 border border-border rounded-[10px] px-3 py-2 text-[13px] bg-surface"
+            />
+            <select
+              name="categoryId"
+              defaultValue={categoryFilter ?? ""}
+              className="border border-border rounded-[10px] px-3 py-2 text-[13px] bg-surface"
+            >
+              <option value="">Todas las categorías</option>
+              {(categories ?? []).map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.emoji} {c.name}
+                </option>
+              ))}
+            </select>
+            {(paymentMethods ?? []).length > 0 ? (
+              <select
+                name="paymentMethodId"
+                defaultValue={paymentMethodFilter ?? ""}
+                className="border border-border rounded-[10px] px-3 py-2 text-[13px] bg-surface"
+              >
+                <option value="">Todos los métodos</option>
+                {(paymentMethods ?? []).map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            ) : null}
+            <button type="submit" className="rounded-[10px] bg-forest text-white font-bold text-[13px] px-4 py-2">
+              Buscar
+            </button>
+          </form>
+          {hasSearch ? (
+            <Link
+              href={buildQuery({ month: monthParam(monthDate), type: typeFilter })}
+              className="inline-block text-[12px] font-semibold text-ink-muted mt-2"
+            >
+              ✕ Limpiar filtros
+            </Link>
+          ) : null}
+        </details>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-4">
         <div className="bg-surface border border-border rounded-[18px] shadow-sm p-5">
           {(transactions ?? []).length === 0 ? (
             <p className="text-[12.8px] text-ink-muted py-6 text-center">
-              Sin movimientos en este mes.
+              {hasSearch ? "Sin resultados para esa búsqueda." : "Sin movimientos en este mes."}
             </p>
           ) : (
             (transactions ?? []).map((t, i) => {
